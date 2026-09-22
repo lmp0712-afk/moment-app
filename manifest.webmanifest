@@ -1,0 +1,10 @@
+{
+  "name":"MOMENT – Mehr als ein Plan. Dein Leben.",
+  "short_name":"MOMENT",
+  "start_url":".",
+  "display":"standalone",
+  "background_color":"#f8f6f0",
+  "theme_color":"#eef1e8",
+  "lang":"de",
+  "icons":[]
+}

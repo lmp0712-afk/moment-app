@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#eef1e8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<title>MOMENT</title>
+<style>
+:root{--cream:#f8f6f0;--sage:#aabda9;--pink:#efd0d4;--lav:#d9d3e8;--ink:#353633;--muted:#777970;--card:#fffefa}
+*{box-sizing:border-box}body{margin:0;background:var(--cream);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif}
+button,input,select{font:inherit}button{border:0}.app{max-width:520px;margin:auto;min-height:100vh;padding-bottom:92px}.screen{padding:22px 18px 20px}
+h1{font-size:32px;margin:4px 0 4px}h2{font-size:23px;margin:0 0 12px}.sub{color:var(--muted)}
+.card{background:var(--card);border-radius:22px;padding:18px;margin:12px 0;box-shadow:0 5px 22px #00000008}
+.free{background:linear-gradient(135deg,#eef3ea,#f8f5ef);padding:22px;border-radius:24px;margin:20px 0}
+.free strong{font-size:27px;display:block;margin-bottom:3px}.item{display:flex;gap:12px;align-items:center}.time{font-size:13px;color:var(--muted);min-width:58px}.pill{padding:7px 11px;border-radius:999px;background:#f0eee8;font-size:12px}.empty{padding:30px 12px;text-align:center;color:var(--muted)}
+.nav{position:fixed;bottom:0;left:0;right:0;background:#fffefbf2;backdrop-filter:blur(16px);border-top:1px solid #0000000a;display:flex;justify-content:center;z-index:10}.nav-inner{max-width:520px;width:100%;display:flex;justify-content:space-around;padding:8px 4px calc(8px + env(safe-area-inset-bottom))}
+.nav button{background:none;color:var(--muted);font-size:11px;display:flex;flex-direction:column;gap:3px;align-items:center}.nav button.active{color:#526c59;font-weight:600}
+.fab{position:fixed;right:max(20px,calc((100vw - 520px)/2 + 20px));bottom:84px;width:56px;height:56px;border-radius:50%;background:var(--sage);font-size:28px;color:white;box-shadow:0 8px 22px #0002;z-index:9}
+.field{width:100%;padding:13px 14px;border:1px solid #00000012;border-radius:14px;background:white;margin:6px 0 12px}.primary{width:100%;padding:14px;border-radius:16px;background:var(--sage);color:white;font-weight:700}.secondary{padding:11px 14px;border-radius:14px;background:#f0eee8}
+.onboarding{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:28px}.logo{font-size:42px;font-weight:700;letter-spacing:1px}.tag{font-size:18px;color:var(--muted);line-height:1.35;margin:8px 0 28px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px}.actions{display:flex;gap:8px;flex-wrap:wrap}
+.modal{position:fixed;inset:0;background:#0005;display:flex;align-items:end;z-index:20}.sheet{width:100%;max-width:520px;margin:auto;background:var(--cream);border-radius:26px 26px 0 0;padding:22px 18px calc(25px + env(safe-area-inset-bottom));max-height:90vh;overflow:auto}
+.small{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const KEY="moment_state_v1";
+const blank={onboarding:false,name:"",wake:"07:00",bed:"23:00",morning:30,evening:30,workStart:"09:00",workEnd:"17:00",commute:30,events:[],tasks:[],active:"today"};
+let state=JSON.parse(localStorage.getItem(KEY)||"null")||blank;
+const save=()=>{localStorage.setItem(KEY,JSON.stringify(state));render()};
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const todayKey=()=>new Date().toISOString().slice(0,10);
+const fmtDate=d=>new Date(d).toLocaleDateString("de-DE",{weekday:"long",day:"2-digit",month:"long"});
+function freeMinutes(){
+ let total=1440-480-state.morning-state.evening-(parseInt(state.workEnd)-parseInt(state.workStart))*60-state.commute*2;
+ const k=todayKey();
+ state.events.filter(e=>e.date===k).forEach(e=>total+=0-Number(e.duration));
+ state.tasks.filter(t=>t.date===k&&!t.done).forEach(t=>total+=0-Number(t.duration));
+ return Math.max(0,total);
+}
+function greeting(){let h=new Date().getHours();return h<12?"Guten Morgen":h<18?"Guten Tag":"Guten Abend"}
+function nav(){
+return `<div class="nav"><div class="nav-inner">
+${[["today","🏠","Heute"],["calendar","📅","Kalender"],["tasks","☑️","Aufgaben"],["work","💼","Arbeit"],["life","❤️","Leben"]].map(x=>`<button class="${state.active===x[0]?"active":""}" onclick="go('${x[0]}')"><span style="font-size:20px">${x[1]}</span>${x[2]}</button>`).join("")}
+</div></div><button class="fab" onclick="addMenu()">+</button>`;
+}
+function onboarding(){
+document.getElementById("root").innerHTML=`<div class="onboarding">
+<div class="logo">MOMENT</div><div class="tag">Mehr als ein Plan.<br>Dein Leben.</div>
+<div class="card"><h2>Willkommen 🤍</h2><p class="sub">Richte deinen Alltag einmal ein. Alles bleibt später veränderbar.</p>
+<input id="name" class="field" placeholder="Wie heißt du?">
+<label class="small">Aufstehen</label><input id="wake" class="field" type="time" value="${state.wake}">
+<label class="small">Schlafenszeit</label><input id="bed" class="field" type="time" value="${state.bed}">
+<label class="small">Arbeitsbeginn</label><input id="ws" class="field" type="time" value="${state.workStart}">
+<label class="small">Arbeitsende</label><input id="we" class="field" type="time" value="${state.workEnd}">
+<label class="small">Arbeitsweg in Minuten</label><input id="commute" class="field" type="number" min="0" value="${state.commute}">
+<button class="primary" onclick="finishOnboarding()">MOMENT starten</button></div></div>`;
+}
+function today(){
+let ev=state.events.filter(e=>e.date===todayKey()).sort((a,b)=>a.start.localeCompare(b.start));
+let tasks=state.tasks.filter(t=>t.date===todayKey()&&!t.done);
+document.getElementById("root").innerHTML=`<div class="app"><main class="screen">
+<h1>${greeting()}${state.name?", "+esc(state.name):""} 🤍</h1><div class="sub">${fmtDate(new Date())}</div>
+<div class="free"><strong>🤍 ${Math.floor(freeMinutes()/60)} Std. ${freeMinutes()%60} Min.</strong><span>freie Zeit heute</span></div>
+<div class="row"><h2>Heute</h2><button class="pill" onclick="lessToday()">🌿 Heute weniger</button></div>
+${ev.length?ev.map(e=>`<div class="card item"><div class="time">${esc(e.start)}</div><div><b>${esc(e.title)}</b><div class="small">${e.duration} Min. · ${esc(e.area||"Sonstiges")}</div></div></div>`).join(""):`<div class="empty">Noch keine Termine. 🤍</div>`}
+${tasks.length?`<h2 style="margin-top:24px">Aufgaben</h2>`+tasks.map(t=>`<div class="card row"><div><b>${esc(t.title)}</b><div class="small">${t.duration} Min.</div></div><button class="secondary" onclick="doneTask('${t.id}')">✓</button></div>`).join(""):""}
+</main>${nav()}</div>`;
+}
+function calendar(){
+document.getElementById("root").innerHTML=`<div class="app"><main class="screen"><h1>Kalender</h1><div class="sub">Dein MOMENT-Kalender</div>
+<div class="card"><h2>${fmtDate(new Date())}</h2><p class="sub">Termine erscheinen hier und automatisch auch in „Heute“.</p></div>
+${state.events.sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start)).map(e=>`<div class="card row"><div><b>${esc(e.title)}</b><div class="small">${e.date} · ${e.start} · ${e.duration} Min.</div></div><button class="secondary" onclick="deleteEvent('${e.id}')">Löschen</button></div>`).join("")||`<div class="empty">Dein Kalender ist noch leer. 🤍</div>`}
+</main>${nav()}</div>`;
+}
+function tasks(){
+document.getElementById("root").innerHTML=`<div class="app"><main class="screen"><h1>Aufgaben</h1><div class="sub">Alles, was du erledigen möchtest.</div>
+${state.tasks.map(t=>`<div class="card row"><div><b>${esc(t.title)}</b><div class="small">${t.date} · ${t.duration} Min.</div></div><button class="secondary" onclick="doneTask('${t.id}')">${t.done?"↩":"✓"}</button></div>`).join("")||`<div class="empty">Noch keine Aufgaben. 🤍</div>`}
+</main>${nav()}</div>`;
+}
+function work(){
+document.getElementById("root").innerHTML=`<div class="app"><main class="screen"><h1>💼 Arbeit</h1><div class="sub">Deine Arbeitswelt bleibt getrennt – und erscheint trotzdem in Heute.</div>
+<div class="card"><div class="row"><b>Arbeitszeit</b><span class="pill">${state.workStart}–${state.workEnd}</span></div><p class="small">Arbeitsweg: ${state.commute} Min.</p></div>
+<div class="empty">Arbeitsaufgaben und Projekte folgen im nächsten Ausbau. 🤍</div></main>${nav()}</div>`;
+}
+function life(){
+document.getElementById("root").innerHTML=`<div class="app"><main class="screen"><h1>❤️ Leben</h1><div class="sub">Zeit für das, was außerhalb der Arbeit wichtig ist.</div>
+${["❤️ Beziehung","🏃 Sport","👨‍👩‍👧 Freunde & Familie","🏠 Haushalt","🧘 Me-Time","🍽️ Essen"].map(x=>`<div class="card"><b>${x}</b><div class="small">Noch nichts geplant</div></div>`).join("")}
+</main>${nav()}</div>`;
+}
+function go(x){state.active=x;save();render()}
+function addMenu(){document.getElementById("root").insertAdjacentHTML("beforeend",`<div class="modal" id="modal"><div class="sheet"><div class="row"><h2>Was möchtest du hinzufügen?</h2><button class="secondary" onclick="closeModal()">✕</button></div>
+<div class="actions">${["📅 Termin","☑️ Aufgabe","🏃 Sport","❤️ Beziehung","👨‍👩‍👧 Freunde & Familie","🏠 Haushalt","🧘 Me-Time","🍽️ Essen"].map(x=>`<button class="secondary" onclick="addForm('${x}')">${x}</button>`).join("")}</div></div></div>`)}
+function closeModal(){document.getElementById("modal")?.remove()}
+function addForm(type){
+let isTask=type.includes("Aufgabe");
+document.querySelector("#modal .sheet").innerHTML=`<div class="row"><h2>${type}</h2><button class="secondary" onclick="closeModal()">✕</button></div>
+<input id="title" class="field" placeholder="Titel">
+<label class="small">Datum</label><input id="date" class="field" type="date" value="${todayKey()}">
+${isTask?"":`<label class="small">Start</label><input id="start" class="field" type="time" value="18:00">`}
+<label class="small">Dauer in Minuten</label><input id="duration" class="field" type="number" value="30" min="5" step="5">
+<button class="primary" onclick="${isTask?"saveTask()":"saveEvent('"+esc(type)+"')"}">Speichern</button>`;
+}
+function saveEvent(type){let title=document.getElementById("title").value.trim();if(!title)return;state.events.push({id:crypto.randomUUID(),title,date:document.getElementById("date").value,start:document.getElementById("start").value,duration:Number(document.getElementById("duration").value)||30,area:type.replace(/^[^ ]+ /,"")});save();closeModal()}
+function saveTask(){let title=document.getElementById("title").value.trim();if(!title)return;state.tasks.push({id:crypto.randomUUID(),title,date:document.getElementById("date").value,duration:Number(document.getElementById("duration").value)||30,done:false});save();closeModal()}
+function doneTask(id){let t=state.tasks.find(x=>x.id===id);if(t)t.done=!t.done;save()}
+function deleteEvent(id){state.events=state.events.filter(x=>x.id!==id);save()}
+function lessToday(){alert("🌿 MOMENT: Die intelligente „Heute weniger“-Vorschlagslogik wird im nächsten Ausbau aktiviert. Deine freien Zeiten bleiben bis dahin unangetastet.")}
+function finishOnboarding(){state.name=document.getElementById("name").value.trim();state.wake=document.getElementById("wake").value;state.bed=document.getElementById("bed").value;state.workStart=document.getElementById("ws").value;state.workEnd=document.getElementById("we").value;state.commute=Number(document.getElementById("commute").value)||0;state.onboarding=true;state.active="today";save()}
+function render(){state.onboarding?({today,today,calendar,tasks,work,life}[state.active]||today)():onboarding()}
+if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+render();
+</script>
+</body>
+</html>
