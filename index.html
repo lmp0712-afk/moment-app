@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>MOMENT</title>
 <style>
 :root{--cream:#f8f6f0;--sage:#aabda9;--pink:#efd0d4;--lav:#d9d3e8;--ink:#353633;--muted:#777970;--card:#fffefa}
@@ -30,7 +31,7 @@ h1{font-size:32px;margin:4px 0 4px}h2{font-size:23px;margin:0 0 12px}.sub{color:
 <div id="root"></div>
 <script>
 const KEY="moment_state_v1";
-const blank={onboarding:false,name:"",wake:"07:00",bed:"23:00",morning:30,evening:30,workStart:"09:00",workEnd:"17:00",commute:30,events:[],tasks:[],active:"today"};
+const blank={onboarding:false,name:"",wake:"",bed:"",morning:30,evening:30,workStart:"",workEnd:"",commute:"",events:[],tasks:[],active:"today"};
 let state=JSON.parse(localStorage.getItem(KEY)||"null")||blank;
 const save=()=>{localStorage.setItem(KEY,JSON.stringify(state));render()};
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -54,11 +55,11 @@ document.getElementById("root").innerHTML=`<div class="onboarding">
 <div class="logo">MOMENT</div><div class="tag">Mehr als ein Plan.<br>Dein Leben.</div>
 <div class="card"><h2>Willkommen 🤍</h2><p class="sub">Richte deinen Alltag einmal ein. Alles bleibt später veränderbar.</p>
 <input id="name" class="field" placeholder="Wie heißt du?">
-<label class="small">Aufstehen</label><input id="wake" class="field" type="time" value="${state.wake}">
-<label class="small">Schlafenszeit</label><input id="bed" class="field" type="time" value="${state.bed}">
+<label class="small">Aufstehen</label><input id="wake" class="field" type="time" value="${state.wake}" required>
+<label class="small">Schlafenszeit</label><input id="bed" class="field" type="time" value="${state.bed}" required>
 <label class="small">Arbeitsbeginn</label><input id="ws" class="field" type="time" value="${state.workStart}">
 <label class="small">Arbeitsende</label><input id="we" class="field" type="time" value="${state.workEnd}">
-<label class="small">Arbeitsweg in Minuten</label><input id="commute" class="field" type="number" min="0" value="${state.commute}">
+<label class="small">Arbeitsweg in Minuten</label><input id="commute" class="field" type="number" min="0" value="${state.commute}" placeholder="z. B. 30">
 <button class="primary" onclick="finishOnboarding()">MOMENT starten</button></div></div>`;
 }
 function today(){
@@ -111,7 +112,18 @@ function saveTask(){let title=document.getElementById("title").value.trim();if(!
 function doneTask(id){let t=state.tasks.find(x=>x.id===id);if(t)t.done=!t.done;save()}
 function deleteEvent(id){state.events=state.events.filter(x=>x.id!==id);save()}
 function lessToday(){alert("🌿 MOMENT: Die intelligente „Heute weniger“-Vorschlagslogik wird im nächsten Ausbau aktiviert. Deine freien Zeiten bleiben bis dahin unangetastet.")}
-function finishOnboarding(){state.name=document.getElementById("name").value.trim();state.wake=document.getElementById("wake").value;state.bed=document.getElementById("bed").value;state.workStart=document.getElementById("ws").value;state.workEnd=document.getElementById("we").value;state.commute=Number(document.getElementById("commute").value)||0;state.onboarding=true;state.active="today";save()}
+function finishOnboarding(){
+state.name=document.getElementById("name").value.trim();
+state.wake=document.getElementById("wake").value;
+state.bed=document.getElementById("bed").value;
+state.workStart=document.getElementById("ws").value;
+state.workEnd=document.getElementById("we").value;
+state.commute=Number(document.getElementById("commute").value);
+if(!state.name || !state.wake || !state.bed || !state.workStart || !state.workEnd || Number.isNaN(state.commute)){
+alert("Bitte fülle die markierten Angaben aus. 🤍"); return;
+}
+state.onboarding=true;state.active="today";save()
+}
 function render(){state.onboarding?({today,today,calendar,tasks,work,life}[state.active]||today)():onboarding()}
 if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
 render();
