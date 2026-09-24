@@ -41,7 +41,7 @@ function intervalsToday(){
 }
 function freeMinutes(){
  const {arr,wake,bed}=intervalsToday(); if(!state.wake||!state.bed)return 0;
- const usable=[]; const morning=Number(state.morning)||0, evening=Number(state.evening)||0; let start=wake+morning,end=bed-evening;
+ const usable=[]; const morning=Number(state.morning)||0, evening=Number(state.evening)||0; let start=wake+morning,end=bed-evening; const now=new Date(); const nowMin=now.getHours()*60+now.getMinutes(); if(nowMin>start) start=Math.min(nowMin,end);
  if(end<=start)return 0; arr.forEach(x=>{let s=Math.max(start,x.s),e=Math.min(end,x.e);if(e>s)usable.push([s,e])}); usable.sort((a,b)=>a[0]-b[0]); let used=0,cs=null,ce=null; usable.forEach(([s,e])=>{if(cs===null){cs=s;ce=e}else if(s<=ce){ce=Math.max(ce,e)}else{used+=ce-cs;cs=s;ce=e}});if(cs!==null)used+=ce-cs;return Math.max(0,(end-start)-used);
 }
 function greeting(){let h=new Date().getHours();return h<12?"Guten Morgen":h<18?"Guten Tag":"Guten Abend"}
