@@ -1,4 +1,4 @@
-const CACHE_NAME = 'moment-v4';
+const CACHE_NAME = 'moment-v5';
 const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', event => {
